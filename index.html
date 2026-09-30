@@ -1,1 +1,175 @@
-PLACEHOLDER_WILL_FAIL
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ArmorTest — Range & Combat</title>
+<link href="https://fonts.cdnfonts.com/css/bobloxclassic" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#08090b;color:#d0d0d0;overflow:hidden;height:100vh}
+#canvas-wrap{position:fixed;inset:0;z-index:0}canvas{display:block;width:100%;height:100%}
+#ui{position:fixed;top:10px;left:10px;z-index:10;width:300px;max-height:calc(100vh - 20px);overflow-y:auto;background:rgba(12,14,18,.93);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:10px 12px;backdrop-filter:blur(10px)}
+#ui h1{font-family:'BobloxClassic',sans-serif;font-size:15px;color:#e8c547;letter-spacing:.4px}
+#ui .sub{font-size:9px;color:#6a7a8a;margin:2px 0 8px;text-transform:uppercase;letter-spacing:.7px}
+.mode-row{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap}
+.mode-btn{flex:1;min-width:70px;padding:6px 4px;font-size:10px;font-weight:600;background:rgba(255,255,255,.04);color:#8a9aaa;border:1px solid rgba(255,255,255,.08);border-radius:4px;cursor:pointer}
+.mode-btn.active{background:rgba(232,197,71,.12);color:#e8c547;border-color:rgba(232,197,71,.35)}
+label{display:block;font-size:9px;color:#7a8a9a;margin:6px 0 2px;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+select{width:100%;padding:6px 8px;font-size:12px;background:#12151a;color:#e0e0e0;border:1px solid rgba(255,255,255,.1);border-radius:4px}
+button.fire{margin-top:8px;width:100%;padding:9px;font-family:'BobloxClassic',sans-serif;font-size:14px;background:linear-gradient(180deg,#a83228,#6e1a14);border:1px solid #c44;border-radius:4px;color:#fff;cursor:pointer}
+button.fire:hover{background:linear-gradient(180deg,#c04035,#8a2218)}
+.stats{margin-top:8px;padding:7px;background:rgba(0,0,0,.3);border-radius:4px;font-size:10px;line-height:1.45;border:1px solid rgba(255,255,255,.05);color:#a0aab4}
+.stats strong{color:#e8c547}
+.result{margin-top:6px;padding:6px;border-radius:4px;font-weight:600;text-align:center;min-height:26px;display:flex;align-items:center;justify-content:center;font-size:11px}
+.result.pen{background:rgba(34,120,60,.25);color:#5dca7a;border:1px solid rgba(34,120,60,.35)}
+.result.nope{background:rgba(140,40,40,.25);color:#e07070;border:1px solid rgba(140,40,40,.35)}
+.result.idle{background:rgba(255,255,255,.03);color:#6a7a8a;border:1px solid rgba(255,255,255,.05)}
+.hint{margin-top:6px;padding:6px;background:rgba(40,60,90,.2);border-radius:4px;font-size:9px;color:#8ab4d4;border:1px solid rgba(80,120,160,.2);display:none}
+.hint.show{display:block}
+#hud{position:fixed;top:10px;right:10px;z-index:10;text-align:right}
+#country-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(12,14,18,.9);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:5px 10px;font-size:11px;color:#e8c547;font-weight:600}
+#country-badge img{width:24px;height:16px;object-fit:cover;border-radius:2px}
+#combat-hud{margin-top:6px;background:rgba(12,14,18,.9);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:6px 10px;font-size:10px;color:#a0aab4;display:none}
+#combat-hud.show{display:block}
+#combat-hud .hp{color:#5dca7a}#combat-hud .hp.low{color:#e07070}
+#help{position:fixed;bottom:10px;right:10px;z-index:10;background:rgba(12,14,18,.88);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:5px 8px;font-size:9px;color:#6a7a8a;max-width:220px;line-height:1.35}
+#loader{position:fixed;inset:0;z-index:100;background:#08090b;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'BobloxClassic',sans-serif;font-size:16px;color:#e8c547;transition:opacity .5s;gap:4px}
+#loader.hidden{opacity:0;pointer-events:none}
+#loader .sub-load{font-size:10px;color:#6a7a8a;font-family:system-ui,sans-serif}
+</style>
+</head>
+<body>
+<div id="loader">ARMORTEST<div class="sub-load">loading range & combat systems</div></div>
+<div id="canvas-wrap"></div>
+<div id="hud">
+<div id="country-badge"><img id="flag-icon" src="" alt=""/><span id="country-name">United States</span></div>
+<div id="combat-hud"><div>You: <span class="hp" id="player-hp">100</span>%</div><div>Enemy: <span class="hp" id="enemy-hp">100</span>%</div><div id="plane-status"></div></div>
+</div>
+<div id="ui">
+<h1>ARMORTEST</h1>
+<div class="sub">Range · Combat sandbox</div>
+<div class="mode-row">
+<button class="mode-btn active" id="mode-test" type="button">Test Range</button>
+<button class="mode-btn" id="mode-combat" type="button">Combat</button>
+</div>
+<label>Your vehicle</label><select id="tank-select"></select>
+<label>Armor package</label><select id="armor-select"></select>
+<label>Projectile</label><select id="proj-select"></select>
+<label id="enemy-label" style="display:none">Enemy vehicle</label>
+<select id="enemy-select" style="display:none"></select>
+<button class="fire" id="fire-btn">FIRE</button>
+<div class="hint" id="combat-hint">Combat: field split by river. AI tanks return fire. Planes overfly and can strike. WASD move · Q/E turret · FIRE or Space to shoot.</div>
+<div class="stats" id="stats">Select configuration.</div>
+<div class="result idle" id="result">Ready</div>
+</div>
+<div id="help">Orbit · Zoom · Right-pan<br>Flag on far wall (test mode)</div>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.170.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.170.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const VEHICLES=[{id:'m1a2',name:'M1A2 Abrams',country:'United States',flagCode:'us',baseArmor:600,color:0x4a5538,accent:0x3a4430,style:'abrams',type:'MBT',hp:100},{id:'leo2',name:'Leopard 2A7',country:'Germany',flagCode:'de',baseArmor:580,color:0x3d4830,accent:0x2e3824,style:'leopard',type:'MBT',hp:100},{id:'t90',name:'T-90M',country:'Russia',flagCode:'ru',baseArmor:550,color:0x3a482c,accent:0x2a3820,style:'t90',type:'MBT',hp:95},{id:'challenger',name:'Challenger 2',country:'United Kingdom',flagCode:'gb',baseArmor:620,color:0x484832,accent:0x383828,style:'challenger',type:'MBT',hp:100},{id:'merkava',name:'Merkava Mk.4',country:'Israel',flagCode:'il',baseArmor:590,color:0x58583a,accent:0x48482e,style:'merkava',type:'MBT',hp:100},{id:'type99',name:'Type 99A',country:'China',flagCode:'cn',baseArmor:540,color:0x3a482a,accent:0x2a381e,style:'type99',type:'MBT',hp:95},{id:'k2',name:'K2 Black Panther',country:'South Korea',flagCode:'kr',baseArmor:570,color:0x3a4530,accent:0x2a3520,style:'k2',type:'MBT',hp:98},{id:'leclerc',name:'Leclerc',country:'France',flagCode:'fr',baseArmor:560,color:0x485238,accent:0x384230,style:'leclerc',type:'MBT',hp:96},{id:'ariete',name:'C1 Ariete',country:'Italy',flagCode:'it',baseArmor:500,color:0x455038,accent:0x354028,style:'ariete',type:'MBT',hp:90},{id:'t84',name:'T-84 Oplot',country:'Ukraine',flagCode:'ua',baseArmor:520,color:0x3a482a,accent:0x2a381e,style:'t84',type:'MBT',hp:92},{id:'t14',name:'T-14 Armata',country:'Russia',flagCode:'ru',baseArmor:650,color:0x3a4a2e,accent:0x2a3a22,style:'t14',type:'MBT',hp:105},{id:'abrams_sep',name:'M1A2 SEP v3',country:'United States',flagCode:'us',baseArmor:640,color:0x4a5538,accent:0x3a4430,style:'abrams',type:'MBT',hp:105},{id:'pl01',name:'PL-01 Concept',country:'Poland',flagCode:'pl',baseArmor:480,color:0x3a4a32,accent:0x2a3a24,style:'leopard',type:'MBT',hp:88},{id:'altay',name:'Altay',country:'Turkey',flagCode:'tr',baseArmor:560,color:0x4a5538,accent:0x3a4430,style:'leopard',type:'MBT',hp:95},{id:'bradley',name:'M2A3 Bradley',country:'United States',flagCode:'us',baseArmor:80,color:0x4a5538,accent:0x3a4430,style:'bradley',type:'IFV',hp:55},{id:'bmp3',name:'BMP-3',country:'Russia',flagCode:'ru',baseArmor:45,color:0x3a482c,accent:0x2a3820,style:'bmp',type:'IFV',hp:45},{id:'puma',name:'Puma IFV',country:'Germany',flagCode:'de',baseArmor:90,color:0x3d4830,accent:0x2e3824,style:'puma',type:'IFV',hp:58},{id:'warrior',name:'Warrior IFV',country:'United Kingdom',flagCode:'gb',baseArmor:70,color:0x484832,accent:0x383828,style:'warrior',type:'IFV',hp:50},{id:'cv90',name:'CV90 Mk.IV',country:'Sweden',flagCode:'se',baseArmor:85,color:0x3a4a32,accent:0x2a3a24,style:'cv90',type:'IFV',hp:56},{id:'stryker',name:'Stryker MGS',country:'United States',flagCode:'us',baseArmor:40,color:0x4a5538,accent:0x3a4430,style:'stryker',type:'APC',hp:40},{id:'btr82',name:'BTR-82A',country:'Russia',flagCode:'ru',baseArmor:25,color:0x3a482c,accent:0x2a3820,style:'btr',type:'APC',hp:35},{id:'boxer',name:'Boxer IFV',country:'Germany',flagCode:'de',baseArmor:55,color:0x3d4830,accent:0x2e3824,style:'boxer',type:'APC',hp:48}];
+const ARMORS=[{id:'stock',name:'Stock composite',multiplier:1},{id:'era',name:'ERA blocks',multiplier:1.35},{id:'nera',name:'NERA + spaced',multiplier:1.25},{id:'du',name:'DU mesh',multiplier:1.45},{id:'chobham',name:'Chobham / Dorchester',multiplier:1.5},{id:'relikt',name:'Relikt ERA',multiplier:1.55},{id:'trophy',name:'Trophy APS',multiplier:1.7},{id:'iron_fist',name:'Iron Fist APS',multiplier:1.65},{id:'lightweight',name:'Lightweight',multiplier:.85},{id:'experimental',name:'Nanocomposite',multiplier:1.9},{id:'cage',name:'Slat / cage',multiplier:1.15},{id:'add_on',name:'Add-on ceramic',multiplier:1.3},{id:'malachit',name:'Malachit ERA',multiplier:1.6},{id:'arena',name:'Arena-M APS',multiplier:1.68}];
+const PROJECTILES=[{id:'oyster',name:'Oyster shell',penetration:2,type:'kinetic',velocity:15,note:'Negligible',dmg:1},{id:'rock',name:'Large rock',penetration:8,type:'kinetic',velocity:25,note:'Negligible',dmg:2},{id:'50bmg',name:'.50 BMG AP',penetration:25,type:'kinetic',velocity:900,note:'Small arms',dmg:5},{id:'20mm',name:'20 mm AP',penetration:50,type:'kinetic',velocity:1000,note:'Autocannon',dmg:8},{id:'25mm',name:'25 mm APFSDS',penetration:70,type:'kinetic',velocity:1350,note:'Bushmaster',dmg:12},{id:'30mm',name:'30 mm APFSDS',penetration:90,type:'kinetic',velocity:1200,note:'IFV',dmg:15},{id:'40mm',name:'40 mm CTAS',penetration:140,type:'kinetic',velocity:1500,note:'CTAS',dmg:20},{id:'105heat',name:'105 mm HEAT',penetration:400,type:'chemical',velocity:1100,note:'HEAT',dmg:35},{id:'120heat',name:'120 mm HEAT-MP',penetration:550,type:'chemical',velocity:1150,note:'HEAT-MP',dmg:42},{id:'120apfsds',name:'120 mm APFSDS',penetration:700,type:'kinetic',velocity:1650,note:'KE',dmg:55},{id:'125apfsds',name:'125 mm APFSDS',penetration:680,type:'kinetic',velocity:1700,note:'KE',dmg:52},{id:'rpg7',name:'RPG-7 PG-7VR',penetration:600,type:'chemical',velocity:300,note:'Tandem',dmg:40},{id:'javelin',name:'Javelin',penetration:800,type:'chemical',velocity:200,note:'Top-attack',dmg:60},{id:'kornet',name:'Kornet',penetration:1000,type:'chemical',velocity:250,note:'ATGM',dmg:65},{id:'drone_fpv',name:'FPV drone',penetration:350,type:'chemical',velocity:80,note:'Kamikaze',dmg:30},{id:'hellfire',name:'Hellfire',penetration:900,type:'chemical',velocity:425,note:'ASM',dmg:70},{id:'maverick',name:'Maverick',penetration:1100,type:'chemical',velocity:300,note:'ASM',dmg:80},{id:'tow',name:'TOW',penetration:900,type:'chemical',velocity:278,note:'ATGM',dmg:62},{id:'nlaw',name:'NLAW',penetration:500,type:'chemical',velocity:200,note:'PLOS',dmg:45},{id:'brimstone',name:'Brimstone 2',penetration:950,type:'chemical',velocity:450,note:'ASM',dmg:72},{id:'spike',name:'Spike NLOS',penetration:1000,type:'chemical',velocity:180,note:'ATGM',dmg:68},{id:'excalibur',name:'Excalibur',penetration:300,type:'kinetic',velocity:800,note:'Arty',dmg:28},{id:'at4',name:'AT4',penetration:450,type:'chemical',velocity:290,note:'Recoilless',dmg:38},{id:'carl_gustaf',name:'Carl Gustaf',penetration:500,type:'chemical',velocity:255,note:'Recoilless',dmg:40}];
+let mode='test';const keys={};
+const wrap=document.getElementById('canvas-wrap');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0e1014);scene.fog=new THREE.FogExp2(0x0e1014,0.018);
+const camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,400);camera.position.set(12,6.5,14);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setSize(window.innerWidth,window.innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;wrap.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=0.05;
+controls.maxPolarAngle=Math.PI*0.48;controls.minDistance=4;controls.maxDistance=80;controls.target.set(0,1.5,0);
+const warehouseGroup=new THREE.Group();const fieldGroup=new THREE.Group();scene.add(warehouseGroup);scene.add(fieldGroup);fieldGroup.visible=false;
+(function buildWarehouse(){
+const W=48,D=36,H=13;
+const floorC=document.createElement('canvas');floorC.width=256;floorC.height=256;
+const fc=floorC.getContext('2d');fc.fillStyle='#3a3a38';fc.fillRect(0,0,256,256);
+for(let i=0;i<400;i++){const g=40+Math.random()*40;fc.fillStyle=`rgba(${g},${g},${g-3},0.15)`;fc.fillRect(Math.random()*256,Math.random()*256,4,4)}
+const floorTex=new THREE.CanvasTexture(floorC);floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(8,6);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshStandardMaterial({map:floorTex,roughness:0.9,metalness:0.05}));
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;warehouseGroup.add(floor);
+const wallMat=new THREE.MeshStandardMaterial({color:0x3a3a38,roughness:0.95,side:THREE.DoubleSide});
+const wallDark=new THREE.MeshStandardMaterial({color:0x2a2a28,roughness:0.95,side:THREE.DoubleSide});
+[[W,H,0,H/2,-D/2,0,wallDark],[W,2,0,1,D/2,Math.PI,wallMat],[D,H,-W/2,H/2,0,Math.PI/2,wallMat],[D,H,W/2,H/2,0,-Math.PI/2,wallMat]].forEach(([w,h,x,y,z,ry,m])=>{const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),m);mesh.position.set(x,y,z);mesh.rotation.y=ry;warehouseGroup.add(mesh)});
+const roof=new THREE.Mesh(new THREE.PlaneGeometry(W+1,D+1),new THREE.MeshStandardMaterial({color:0x1e1e1c,side:THREE.DoubleSide}));roof.rotation.x=Math.PI/2;roof.position.y=H;warehouseGroup.add(roof);
+const beamMat=new THREE.MeshStandardMaterial({color:0x181816,metalness:0.5,roughness:0.5});
+for(let i=-4;i<=4;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(W-1,0.3,0.3),beamMat);b.position.set(0,H-0.25,i*(D/10));warehouseGroup.add(b)}
+[[-10,H-0.7,-6],[0,H-0.7,-6],[10,H-0.7,-6],[-10,H-0.7,4],[0,H-0.7,4],[10,H-0.7,4]].forEach(([x,y,z])=>{const g=new THREE.Mesh(new THREE.BoxGeometry(2,0.08,0.5),new THREE.MeshStandardMaterial({color:0xfff8e0,emissive:0xffeecc,emissiveIntensity:1}));g.position.set(x,y,z);warehouseGroup.add(g);const pl=new THREE.PointLight(0xfff0d8,1.2,24,1.5);pl.position.set(x,y-0.4,z);warehouseGroup.add(pl)});
+warehouseGroup.add(new THREE.AmbientLight(0x556677,0.3));
+const key=new THREE.DirectionalLight(0xfff0dd,0.4);key.position.set(5,12,6);key.castShadow=true;key.shadow.mapSize.set(1024,1024);warehouseGroup.add(key);
+})();
+const flagCanvas=document.createElement('canvas');flagCanvas.width=640;flagCanvas.height=384;
+const flagCtx=flagCanvas.getContext('2d');
+const flagTex=new THREE.CanvasTexture(flagCanvas);flagTex.colorSpace=THREE.SRGBColorSpace;
+const flagMesh=new THREE.Mesh(new THREE.PlaneGeometry(9,5.5),new THREE.MeshStandardMaterial({map:flagTex,side:THREE.DoubleSide}));
+flagMesh.position.set(0,8,-17.5);warehouseGroup.add(flagMesh);
+function setFlag(code){const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{flagCtx.fillStyle='#111';flagCtx.fillRect(0,0,640,384);flagCtx.drawImage(img,0,0,640,384);flagTex.needsUpdate=true};img.src='https://flagcdn.com/w640/'+code+'.png';document.getElementById('flag-icon').src='https://flagcdn.com/w80/'+code+'.png'}
+(function buildField(){
+const grassMat=new THREE.MeshStandardMaterial({color:0x3a5a30,roughness:0.95});
+const left=new THREE.Mesh(new THREE.PlaneGeometry(80,100),grassMat);left.rotation.x=-Math.PI/2;left.position.set(-45,0,0);left.receiveShadow=true;fieldGroup.add(left);
+const right=new THREE.Mesh(new THREE.PlaneGeometry(80,100),grassMat);right.rotation.x=-Math.PI/2;right.position.set(45,0,0);right.receiveShadow=true;fieldGroup.add(right);
+const water=new THREE.Mesh(new THREE.PlaneGeometry(12,100),new THREE.MeshStandardMaterial({color:0x2a4a6a,roughness:0.2,metalness:0.3,transparent:true,opacity:0.85}));
+water.rotation.x=-Math.PI/2;water.position.set(0,0.05,0);fieldGroup.add(water);
+const bankMat=new THREE.MeshStandardMaterial({color:0x5a4a30,roughness:0.9});
+[-7,7].forEach(x=>{const b=new THREE.Mesh(new THREE.PlaneGeometry(3,100),bankMat);b.rotation.x=-Math.PI/2;b.position.set(x,0.02,0);fieldGroup.add(b)});
+const bridge=new THREE.Mesh(new THREE.BoxGeometry(14,0.4,8),new THREE.MeshStandardMaterial({color:0x4a4a48,roughness:0.7,metalness:0.3}));
+bridge.position.set(0,0.4,0);bridge.castShadow=true;fieldGroup.add(bridge);
+const trunkMat=new THREE.MeshStandardMaterial({color:0x3a2a18});const leafMat=new THREE.MeshStandardMaterial({color:0x2a4a20});
+for(let i=0;i<20;i++){const side=i%2===0?-1:1;const tx=side*(20+Math.random()*35),tz=(Math.random()-0.5)*80;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,3,6),trunkMat);trunk.position.set(tx,1.5,tz);fieldGroup.add(trunk);const leaf=new THREE.Mesh(new THREE.ConeGeometry(2.5,4,6),leafMat);leaf.position.set(tx,4.5,tz);fieldGroup.add(leaf)}
+fieldGroup.add(new THREE.AmbientLight(0x88aacc,0.45));
+const sun=new THREE.DirectionalLight(0xfff5e0,0.9);sun.position.set(30,40,20);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-60;sun.shadow.camera.right=60;sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;fieldGroup.add(sun);
+const hillMat=new THREE.MeshStandardMaterial({color:0x3a4a35,roughness:0.95});
+for(const [x,z,s] of[[-70,0,25],[70,0,25],[0,-55,30],[0,55,28]]){const h=new THREE.Mesh(new THREE.SphereGeometry(s,8,6),hillMat);h.position.set(x,-s*0.3,z);h.scale.y=0.4;fieldGroup.add(h)}
+})();
+function mat(c,r=0.6,m=0.35){return new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m})}
+function box(p,geo,material,x,y,z,rx=0,ry=0,rz=0){const mesh=new THREE.Mesh(geo,material);mesh.position.set(x,y,z);mesh.rotation.set(rx,ry,rz);mesh.castShadow=true;mesh.receiveShadow=true;p.add(mesh);return mesh}
+function tracks(p,L,Hgt,Wd,side,dark,track){box(p,new THREE.BoxGeometry(L*0.94,Hgt*0.18,Wd*0.17),track,0,Hgt*0.1,side*(Wd*0.4));const r=Hgt*0.09;for(let i=0;i<6;i++){const w=new THREE.Mesh(new THREE.CylinderGeometry(r,r,Wd*0.13,10),dark);w.rotation.x=Math.PI/2;w.position.set(-L*0.32+i*(L*0.12),Hgt*0.09,side*(Wd*0.4));p.add(w)}box(p,new THREE.BoxGeometry(L*0.84,Hgt*0.22,0.04),track,0,Hgt*0.22,side*(Wd*0.48))}
+function gunBarrel(p,Hgt,dark,len=5){box(p,new THREE.BoxGeometry(0.45,0.42,0.55),dark,0.95,Hgt*0.76,0);const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.11,len,10),dark);barrel.rotation.z=Math.PI/2;barrel.position.set(0.95+len/2,Hgt*0.76,0);p.add(barrel);const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.1,0.25,8),dark);muzzle.rotation.z=Math.PI/2;muzzle.position.set(0.95+len,Hgt*0.76,0);p.add(muzzle)}
+function buildTankMesh(v){const g=new THREE.Group();const turret=new THREE.Group();const body=mat(v.color,0.62,0.32),accent=mat(v.accent,0.65,0.28),dark=mat(0x141414,0.45,0.55),track=mat(0x1a1a18,0.9,0.12);const isTracked=!['stryker','btr','boxer'].includes(v.style);const isIFV=v.type==='IFV'||v.type==='APC';const L=isIFV?6.5:9.2,Wd=isIFV?2.8:3.4,Hgt=isIFV?1.9:2.2;box(g,new THREE.BoxGeometry(L*0.9,Hgt*0.32,Wd*0.86),body,0,Hgt*0.24,0);if(v.style==='abrams'||v.style==='challenger'||v.style==='k2'){box(g,new THREE.BoxGeometry(L*0.48,Hgt*0.26,Wd*0.82),body,-0.4,Hgt*0.46,0);box(g,new THREE.BoxGeometry(L*0.26,Hgt*0.22,Wd*0.8),body,L*0.24,Hgt*0.36,0,0,0,-0.36)}else if(isIFV){box(g,new THREE.BoxGeometry(L*0.65,Hgt*0.36,Wd*0.86),body,-0.05,Hgt*0.4,0)}else{box(g,new THREE.BoxGeometry(L*0.45,Hgt*0.24,Wd*0.82),body,-0.3,Hgt*0.44,0);box(g,new THREE.BoxGeometry(L*0.28,Hgt*0.2,Wd*0.8),body,L*0.22,Hgt*0.34,0,0,0,-0.4)}if(isTracked){tracks(g,L,Hgt,Wd,-1,dark,track);tracks(g,L,Hgt,Wd,1,dark,track)}else{[-L*0.28,-L*0.08,L*0.12,L*0.28].forEach(wx=>{for(const s of[-1,1]){const w=new THREE.Mesh(new THREE.CylinderGeometry(0.48,0.48,0.28,12),dark);w.rotation.x=Math.PI/2;w.position.set(wx,0.48,s*(Wd*0.45));g.add(w)}})}if(v.style==='abrams'){box(turret,new THREE.BoxGeometry(3.3,0.7,2.5),body,0.1,Hgt*0.72,0);box(turret,new THREE.BoxGeometry(1.7,0.42,2.2),body,-1.1,Hgt*0.66,0);gunBarrel(turret,Hgt,dark,5.4)}else if(v.style==='t90'||v.style==='t84'){const core=new THREE.Mesh(new THREE.SphereGeometry(1.3,12,8,0,Math.PI*2,0,Math.PI*0.55),body);core.position.set(0.05,Hgt*0.48,0);core.scale.set(1.08,0.65,0.95);turret.add(core);gunBarrel(turret,Hgt,dark,4.9)}else if(v.style==='bradley'||v.style==='puma'||v.style==='warrior'||v.style==='cv90'||v.style==='bmp'){box(turret,new THREE.BoxGeometry(1.9,0.45,1.6),body,0.2,Hgt*0.68,0);const ac=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.06,2.4,8),dark);ac.rotation.z=Math.PI/2;ac.position.set(1.7,Hgt*0.72,0);turret.add(ac)}else if(v.style==='stryker'||v.style==='boxer'||v.style==='btr'){box(turret,new THREE.BoxGeometry(1.6,0.4,1.5),body,0.15,Hgt*0.66,0);const ac=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.065,2.6,8),dark);ac.rotation.z=Math.PI/2;ac.position.set(1.8,Hgt*0.7,0);turret.add(ac)}else{box(turret,new THREE.BoxGeometry(3.1,0.62,2.35),body,0.08,Hgt*0.7,0);box(turret,new THREE.BoxGeometry(1.4,0.36,2),body,-1.1,Hgt*0.64,0);gunBarrel(turret,Hgt,dark,5.1)}if(!isIFV)box(turret,new THREE.CylinderGeometry(0.28,0.32,0.22,10),body,0.25,Hgt*1.0,0.35);g.add(turret);g.userData={turret,L,Wd,Hgt,vehicle:v};return g}
+function buildPlane(color=0x4a5a48){const g=new THREE.Group();const body=mat(color,0.5,0.4);box(g,new THREE.BoxGeometry(1.2,0.5,6),body,0,0,0);box(g,new THREE.BoxGeometry(8,0.12,1.2),body,0,0,0.3);box(g,new THREE.BoxGeometry(0.15,1.2,1.5),body,0,0.5,-2.5);box(g,new THREE.BoxGeometry(2.5,0.1,0.8),body,0,0.9,-2.3);const nose=new THREE.Mesh(new THREE.ConeGeometry(0.35,1.2,8),body);nose.rotation.x=-Math.PI/2;nose.position.set(0,0,3.5);g.add(nose);return g}
+let playerTank=null,enemyTank=null,playerTurret=null,enemyTurret=null;let playerHP=100,enemyHP=100;
+let playerPos=new THREE.Vector3(-25,0,0),enemyPos=new THREE.Vector3(25,0,0);let playerYaw=0,enemyYaw=Math.PI,playerTurretYaw=0;
+let planes=[],impactParticles=[],shots=[],lastAIShot=0;
+function disposeGroup(g){if(!g)return;scene.remove(g);g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}
+function spawnPlayer(v){disposeGroup(playerTank);playerTank=buildTankMesh(v);playerTurret=playerTank.userData.turret;if(mode==='test'){playerTank.position.set(0,0,0);playerYaw=0}else{playerTank.position.copy(playerPos);playerTank.rotation.y=playerYaw}scene.add(playerTank);setFlag(v.flagCode);document.getElementById('country-name').textContent=v.country}
+function spawnEnemy(v){disposeGroup(enemyTank);if(mode!=='combat')return;enemyTank=buildTankMesh(v);enemyTurret=enemyTank.userData.turret;enemyTank.position.copy(enemyPos);enemyTank.rotation.y=enemyYaw;scene.add(enemyTank)}
+function spawnPlanes(){planes.forEach(p=>disposeGroup(p.mesh));planes=[];if(mode!=='combat')return;for(let i=0;i<3;i++){const mesh=buildPlane(i===0?0x4a5a48:0x3a4a38);const side=i%2===0?-1:1;mesh.position.set(side*40,25+Math.random()*10,(Math.random()-0.5)*60);scene.add(mesh);planes.push({mesh,side,amp:8+Math.random()*6,phase:Math.random()*Math.PI*2,cooldown:0})}}
+function applyRecoil(tank,turret,amount){if(!tank)return;const back=new THREE.Vector3(-Math.sin(tank.rotation.y),0,-Math.cos(tank.rotation.y)).multiplyScalar(amount);tank.position.add(back);if(turret)turret.rotation.x=-0.08*amount;setTimeout(()=>{if(turret)turret.rotation.x=0},200)}
+function fireShot(from,to,proj){const start=from.clone();start.y+=1.8;const end=to.clone();end.y+=1.5;const geo=proj.type==='chemical'?new THREE.ConeGeometry(0.08,0.5,6):new THREE.CylinderGeometry(0.04,0.05,0.6,6);const mesh=new THREE.Mesh(geo,mat(proj.type==='chemical'?0xcc4422:0xccccaa,0.4,0.5));mesh.position.copy(start);mesh.lookAt(end);scene.add(mesh);const trail=new THREE.PointLight(0xffaa66,0.8,5);trail.position.copy(start);scene.add(trail);shots.push({mesh,trail,start,end,t:0,dur:0.6+(1-Math.min(proj.velocity,1700)/1700)*0.5,proj})}
+function spawnImpact(pos,success){const color=success?0x55dd77:0xff5533;const flash=new THREE.PointLight(success?0xaaffcc:0xffaa66,3,7);flash.position.copy(pos);scene.add(flash);setTimeout(()=>scene.remove(flash),60);for(let i=0;i<18;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(0.05+Math.random()*0.06,4,4),new THREE.MeshBasicMaterial({color:i<6?0xffcc66:color,transparent:true,opacity:1}));p.position.copy(pos);p.userData.vel=new THREE.Vector3((Math.random()-0.5)*0.5,Math.random()*0.5+0.1,(Math.random()-0.5)*0.5);p.userData.life=1;scene.add(p);impactParticles.push(p)}}
+const tankSelect=document.getElementById('tank-select'),armorSelect=document.getElementById('armor-select'),projSelect=document.getElementById('proj-select'),enemySelect=document.getElementById('enemy-select');
+const statsEl=document.getElementById('stats'),resultEl=document.getElementById('result'),fireBtn=document.getElementById('fire-btn');
+const groups={MBT:'Main battle tanks',IFV:'IFVs',APC:'APCs'};
+Object.keys(groups).forEach(type=>{const og=document.createElement('optgroup');og.label=groups[type];VEHICLES.filter(v=>v.type===type).forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.name;if(v.id==='m1a2')o.selected=true;og.appendChild(o)});tankSelect.appendChild(og)});
+VEHICLES.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.name;if(v.id==='t90')o.selected=true;enemySelect.appendChild(o)});
+ARMORS.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.name;armorSelect.appendChild(o)});
+PROJECTILES.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;if(p.id==='120apfsds')o.selected=true;projSelect.appendChild(o)});
+function getV(id){return VEHICLES.find(v=>v.id===id)}
+function getArmor(){return ARMORS.find(a=>a.id===armorSelect.value)}
+function getProj(){return PROJECTILES.find(p=>p.id===projSelect.value)}
+function updateStats(){const v=getV(tankSelect.value),a=getArmor(),p=getProj();const eff=Math.round(v.baseArmor*a.multiplier);statsEl.innerHTML=`<strong>${v.name}</strong> · ${v.type}<br>Armor: ${v.baseArmor} → <strong>${eff} mm</strong><br>Round: ${p.name} · ${p.penetration} mm · dmg ${p.dmg}`;resultEl.className='result idle';resultEl.textContent=mode==='combat'?'Combat ready':'Ready'}
+function setMode(m){mode=m;document.getElementById('mode-test').classList.toggle('active',m==='test');document.getElementById('mode-combat').classList.toggle('active',m==='combat');document.getElementById('combat-hint').classList.toggle('show',m==='combat');document.getElementById('combat-hud').classList.toggle('show',m==='combat');document.getElementById('enemy-label').style.display=m==='combat'?'block':'none';enemySelect.style.display=m==='combat'?'block':'none';warehouseGroup.visible=m==='test';fieldGroup.visible=m==='combat';scene.background=new THREE.Color(m==='combat'?0x87a0b8:0x0e1014);scene.fog=m==='combat'?new THREE.FogExp2(0x87a0b8,0.008):new THREE.FogExp2(0x0e1014,0.02);if(m==='test'){controls.target.set(0,1.5,0);camera.position.set(12,6.5,14);playerPos.set(0,0,0);playerYaw=0;disposeGroup(enemyTank);enemyTank=null;planes.forEach(p=>disposeGroup(p.mesh));planes=[]}else{playerPos.set(-25,0,5);enemyPos.set(25,0,-5);playerYaw=0;enemyYaw=Math.PI;playerHP=100;enemyHP=100;updateHP();controls.target.set(0,2,0);camera.position.set(0,25,40);spawnEnemy(getV(enemySelect.value));spawnPlanes()}spawnPlayer(getV(tankSelect.value));updateStats()}
+function updateHP(){const ph=document.getElementById('player-hp'),eh=document.getElementById('enemy-hp');ph.textContent=Math.max(0,Math.round(playerHP));eh.textContent=Math.max(0,Math.round(enemyHP));ph.className='hp'+(playerHP<30?' low':'');eh.className='hp'+(enemyHP<30?' low':'')}
+tankSelect.addEventListener('change',()=>{spawnPlayer(getV(tankSelect.value));playerHP=getV(tankSelect.value).hp;updateHP();updateStats()});
+enemySelect.addEventListener('change',()=>{spawnEnemy(getV(enemySelect.value));enemyHP=getV(enemySelect.value).hp;updateHP()});
+armorSelect.addEventListener('change',updateStats);projSelect.addEventListener('change',updateStats);
+document.getElementById('mode-test').onclick=()=>setMode('test');
+document.getElementById('mode-combat').onclick=()=>setMode('combat');
+window.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'){e.preventDefault();doFire()}});
+window.addEventListener('keyup',e=>{keys[e.code]=false});
+function resolveHit(pen,armorMult,baseArmor,dmg){let p=pen;const a=getArmor();if(a.id.includes('era')||a.id==='relikt'||a.id==='cage')p*=0.8;const eff=baseArmor*armorMult;const success=p>eff*(0.9+Math.random()*0.15);return{success,dmg:success?dmg:dmg*0.15}}
+function doFire(){const p=getProj();const v=getV(tankSelect.value);const a=getArmor();if(mode==='test'){const start=new THREE.Vector3(14,5,(Math.random()-0.5)*4);const end=new THREE.Vector3((Math.random()-0.5)*1.5,1.7,(Math.random()-0.5)*1);fireShot(start,end,p);applyRecoil(playerTank,playerTurret,0.35);const r=resolveHit(p.penetration,a.multiplier,v.baseArmor,p.dmg);setTimeout(()=>{spawnImpact(end,r.success);resultEl.className='result '+(r.success?'pen':'nope');resultEl.textContent=r.success?'Penetration':'No penetration'},600);return}if(!enemyTank||enemyHP<=0||playerHP<=0)return;fireShot(playerTank.position.clone(),enemyTank.position.clone(),p);applyRecoil(playerTank,playerTurret,0.4);playerPos.copy(playerTank.position);const ev=getV(enemySelect.value);const r=resolveHit(p.penetration,1.0,ev.baseArmor,p.dmg);setTimeout(()=>{spawnImpact(enemyTank.position.clone().setY(1.5),r.success);if(r.success){enemyHP=Math.max(0,enemyHP-r.dmg);applyRecoil(enemyTank,enemyTurret,0.5);updateHP();resultEl.className='result pen';resultEl.textContent='Hit — '+Math.round(r.dmg)+' dmg';if(enemyHP<=0)resultEl.textContent='Enemy destroyed'}else{resultEl.className='result nope';resultEl.textContent='Glancing / no pen'}},550)}
+fireBtn.onclick=doFire;
+function aiUpdate(dt){if(mode!=='combat'||!enemyTank||enemyHP<=0||playerHP<=0)return;const dx=playerTank.position.x-enemyTank.position.x;const dz=playerTank.position.z-enemyTank.position.z;const targetYaw=Math.atan2(dx,dz);let dy=targetYaw-enemyYaw;while(dy>Math.PI)dy-=Math.PI*2;while(dy<-Math.PI)dy+=Math.PI*2;enemyYaw+=Math.sign(dy)*Math.min(Math.abs(dy),0.4*dt);enemyTank.rotation.y=enemyYaw;const dist=Math.hypot(dx,dz);if(dist>18){enemyPos.x+=Math.sin(enemyYaw)*4*dt;enemyPos.z+=Math.cos(enemyYaw)*4*dt;if(Math.abs(enemyPos.z)>6)enemyPos.x=Math.max(8,enemyPos.x);enemyTank.position.copy(enemyPos)}lastAIShot+=dt;if(lastAIShot>2.2+Math.random()&&dist<55){lastAIShot=0;const ep=PROJECTILES.find(x=>x.id==='125apfsds')||PROJECTILES[10];fireShot(enemyTank.position.clone(),playerTank.position.clone(),ep);applyRecoil(enemyTank,enemyTurret,0.35);const r=resolveHit(ep.penetration,getArmor().multiplier,getV(tankSelect.value).baseArmor,ep.dmg);setTimeout(()=>{spawnImpact(playerTank.position.clone().setY(1.5),r.success);if(r.success){playerHP=Math.max(0,playerHP-r.dmg);applyRecoil(playerTank,playerTurret,0.55);updateHP();if(playerHP<=0)resultEl.textContent='You were destroyed'}},550)}}
+function planeUpdate(dt){if(mode!=='combat')return;planes.forEach((pl,i)=>{pl.phase+=dt*0.3;pl.mesh.position.x=pl.side*(35+Math.sin(pl.phase)*pl.amp);pl.mesh.position.z=Math.sin(pl.phase*0.7+i)*40;pl.mesh.position.y=22+Math.sin(pl.phase*1.2)*4;pl.mesh.rotation.z=Math.sin(pl.phase)*0.15;pl.cooldown-=dt;if(pl.cooldown<=0&&playerTank&&playerHP>0&&Math.random()<0.002){pl.cooldown=8;const bomb=PROJECTILES.find(x=>x.id==='hellfire')||PROJECTILES[15];fireShot(pl.mesh.position.clone(),playerTank.position.clone(),bomb);document.getElementById('plane-status').textContent='Aircraft inbound';setTimeout(()=>document.getElementById('plane-status').textContent='',2000);const r=resolveHit(bomb.penetration,getArmor().multiplier,getV(tankSelect.value).baseArmor,bomb.dmg*0.7);setTimeout(()=>{if(playerTank)spawnImpact(playerTank.position.clone().setY(1.5),r.success);if(r.success){playerHP=Math.max(0,playerHP-r.dmg);applyRecoil(playerTank,playerTurret,0.7);updateHP()}},700)}})}
+function combatMove(dt){if(mode!=='combat'||!playerTank||playerHP<=0)return;let moved=false;const speed=8;if(keys['KeyW']){playerPos.x+=Math.sin(playerYaw)*speed*dt;playerPos.z+=Math.cos(playerYaw)*speed*dt;moved=true}if(keys['KeyS']){playerPos.x-=Math.sin(playerYaw)*speed*dt;playerPos.z-=Math.cos(playerYaw)*speed*dt;moved=true}if(keys['KeyA']){playerYaw+=1.2*dt;moved=true}if(keys['KeyD']){playerYaw-=1.2*dt;moved=true}if(keys['KeyQ'])playerTurretYaw+=1.5*dt;if(keys['KeyE'])playerTurretYaw-=1.5*dt;if(Math.abs(playerPos.x)<5&&Math.abs(playerPos.z)>5)playerPos.x*=0.99;playerTank.position.copy(playerPos);playerTank.rotation.y=playerYaw;if(playerTurret)playerTurret.rotation.y=playerTurretYaw;if(moved){const ideal=new THREE.Vector3(playerPos.x-Math.sin(playerYaw)*18,12,playerPos.z-Math.cos(playerYaw)*18);camera.position.lerp(ideal,0.03);controls.target.lerp(playerPos.clone().setY(2),0.05)}}
+spawnPlayer(getV('m1a2'));updateStats();setTimeout(()=>document.getElementById('loader').classList.add('hidden'),600);
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight)});
+let last=performance.now();
+function animate(now){requestAnimationFrame(animate);const dt=Math.min(0.05,(now-last)/1000);last=now;controls.update();combatMove(dt);aiUpdate(dt);planeUpdate(dt);for(let i=shots.length-1;i>=0;i--){const s=shots[i];s.t+=dt/s.dur;if(s.t>=1){scene.remove(s.mesh);scene.remove(s.trail);s.mesh.geometry.dispose();shots.splice(i,1);continue}const t=s.t*s.t*(3-2*s.t);s.mesh.position.lerpVectors(s.start,s.end,t);s.mesh.position.y+=Math.sin(s.t*Math.PI)*0.8;s.trail.position.copy(s.mesh.position)}for(let i=impactParticles.length-1;i>=0;i--){const p=impactParticles[i];p.userData.life-=0.025;p.position.add(p.userData.vel);p.userData.vel.y-=0.015;p.material.opacity=Math.max(0,p.userData.life);if(p.userData.life<=0){scene.remove(p);p.geometry.dispose();p.material.dispose();impactParticles.splice(i,1)}}if(mode==='test'&&playerTurret)playerTurret.rotation.y=Math.sin(now*0.0002)*0.03;renderer.render(scene,camera)}
+animate(performance.now());
+</script>
+</body>
+</html>
